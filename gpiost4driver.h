@@ -25,24 +25,6 @@
 
 
 /* Standard headers */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-
-#include <sys/time.h>
-#include <time.h>
-
-#include <stdio.h>      // standard input / output functions
-#include <stdlib.h>
-#include <string.h>     // string function definitions
-#include <unistd.h>     // UNIX standard function definitions
-#include <fcntl.h>      // File control definitions
-#include <errno.h>      // Error number definitions
-#include <termios.h>    // POSIX terminal control definitions
-
 #include <iostream>
 
 /* #define RA_plus 12
@@ -82,14 +64,6 @@ class GPIOST4Driver
 private:
     char guideCMD[1];
     bool debug;
-    std::string device;
-    int fd;
-
-    bool write_blocking(std::string);
-    void write(std::string s);
-    std::string wait_read();
-
-
 };
 
 #endif // GPIOST4Driver_H

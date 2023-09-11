@@ -27,15 +27,7 @@
 #include <indiguiderinterface.h>
 
 /* Standard headers */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <unistd.h>
-#include <sys/time.h>
-
-#include <sys/time.h>
-#include <time.h>
+#include <chrono>
 
 class GPIOST4Driver;
 
@@ -53,6 +45,9 @@ class GPIOST4 : public INDI::DefaultDevice, public INDI::GuiderInterface
     virtual bool ISNewText (const char *dev, const char *name, char *texts[], char *names[], int n);
     virtual bool ISSnoopDevice (XMLEle *root);
 
+    static void NSTimerHelper(void *context);
+    static void WETimerHelper(void *context);
+
     protected:
 
     //  Generic indi device entries
@@ -61,8 +56,6 @@ class GPIOST4 : public INDI::DefaultDevice, public INDI::GuiderInterface
     const char *getDefaultName();
     void debugTriggered(bool enable) override;
 
-    void TimerHit();
-
     virtual IPState GuideNorth(uint32_t ms) override;
     virtual IPState GuideSouth(uint32_t ms) override;
     virtual IPState GuideEast(uint32_t ms) override;
@@ -70,27 +63,14 @@ class GPIOST4 : public INDI::DefaultDevice, public INDI::GuiderInterface
 
     private:
 
-    float CalcWEPulseTimeLeft();
-    float CalcNSPulseTimeLeft();
+	std::chrono::system_clock::time_point NSGuideTS, WEGuideTS;
+	uint32_t NSPulseRequest = 0, WEPulseRequest = 0;
+	int NSDirection = -1, WEDirection = -1, NSTimerID = -1, WETimerID = -1;
+  
+	void NSTimerCallback();
+	void WETimerCallback();
 
-
-    bool InWEPulse;
-    float WEPulseRequest;
-    struct timeval WEPulseStart;
-    int WEtimerID;
-
-
-    bool InNSPulse;
-    float NSPulseRequest;
-    struct timeval NSPulseStart;
-    int NStimerID;
-
-    int WEDir;
-    int NSDir;
-
-    GPIOST4Driver *driver;
-
-
+    	GPIOST4Driver *driver;
 };
 
 #endif // GPIOST4_H

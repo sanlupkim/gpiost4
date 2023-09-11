@@ -32,63 +32,22 @@
 #include "gpiost4.h"
 #include "gpiost4driver.h"
 #include <memory>
-
-#define POLLMS 250
+#include <cstring>
+#include <unistd.h>
 
 // We declare an auto pointer to gpGuide.
 std::unique_ptr<GPIOST4> gpGuide(new GPIOST4());
 
-GPIOST4::GPIOST4() : INDI::GuiderInterface()
+GPIOST4::GPIOST4()
 {
     setVersion(1, 0);
     driver = new GPIOST4Driver();
-    WEDir = NSDir = 0;
-    InWEPulse = InNSPulse = false;
-    WEPulseRequest = NSPulseRequest =0;
-    WEtimerID = NStimerID = 0;
-}
-
-void ISGetProperties(const char *dev)
-{
-        gpGuide->ISGetProperties(dev);
-}
-
-void ISNewSwitch(const char *dev, const char *name, ISState *states, char *names[], int num)
-{
-        gpGuide->ISNewSwitch(dev, name, states, names, num);
-}
-
-void ISNewText(	const char *dev, const char *name, char *texts[], char *names[], int num)
-{
-        gpGuide->ISNewText(dev, name, texts, names, num);
-}
-
-void ISNewNumber(const char *dev, const char *name, double values[], char *names[], int num)
-{
-        gpGuide->ISNewNumber(dev, name, values, names, num);
-}
-
-void ISNewBLOB (const char *dev, const char *name, int sizes[], int blobsizes[], char *blobs[], char *formats[], char *names[], int n)
-{
-  INDI_UNUSED(dev);
-  INDI_UNUSED(name);
-  INDI_UNUSED(sizes);
-  INDI_UNUSED(blobsizes);
-  INDI_UNUSED(blobs);
-  INDI_UNUSED(formats);
-  INDI_UNUSED(names);
-  INDI_UNUSED(n);
-}
-void ISSnoopDevice (XMLEle *root)
-{
-    INDI_UNUSED(root);
 }
 
 GPIOST4::~GPIOST4()
 {
     delete (driver);
 }
-
 
 const char *GPIOST4::getDefaultName()
 {
@@ -119,15 +78,17 @@ bool GPIOST4::Disconnect()
 
 bool GPIOST4::initProperties()
 {
+    INDI::DefaultDevice::initProperties();
+
     initGuiderProperties(getDeviceName(), MAIN_CONTROL_TAB);
 
     setDriverInterface(AUX_INTERFACE | GUIDER_INTERFACE);
 
     addDebugControl();
 
-    //setDefaultPollingPeriod(250);
+    setDefaultPollingPeriod(250);
 
-    return INDI::DefaultDevice::initProperties();
+    return true;
 }
 
 bool GPIOST4::updateProperties()
@@ -189,237 +150,101 @@ void GPIOST4::debugTriggered(bool enable)
     driver->setDebug(enable);
 }
 
-float GPIOST4::CalcWEPulseTimeLeft()
-{
-    double timesince;
-    double timeleft;
-    struct timeval now;
-    gettimeofday(&now,NULL);
 
-    timesince=(double)(now.tv_sec * 1000.0 + now.tv_usec/1000) - (double)(WEPulseStart.tv_sec * 1000.0 + WEPulseStart.tv_usec/1000);
-    timesince=timesince/1000;
-
-
-    timeleft=WEPulseRequest-timesince;
-    return timeleft;
-}
-
-float GPIOST4::CalcNSPulseTimeLeft()
-{
-    double timesince;
-    double timeleft;
-    struct timeval now;
-    gettimeofday(&now,NULL);
-
-    timesince=(double)(now.tv_sec * 1000.0 + now.tv_usec/1000) - (double)(NSPulseStart.tv_sec * 1000.0 + NSPulseStart.tv_usec/1000);
-    timesince=timesince/1000;
-
-
-    timeleft=NSPulseRequest-timesince;
-    return timeleft;
-}
-
-
-void GPIOST4::TimerHit()
-{
-    float timeleft;
-
-    if(InWEPulse)
-    {
-        timeleft=CalcWEPulseTimeLeft();
-
-        if(timeleft < 1.0)
-        {
-            if(timeleft > 0.25)
-            {
-                //  a quarter of a second or more
-                //  just set a tighter timer
-                WEtimerID = SetTimer(250);
-            } else
-            {
-                if(timeleft >0.07)
-                {
-                    //  use an even tighter timer
-                    WEtimerID = SetTimer(50);
-                } else
-                {
-                    //  it's real close now, so spin on it
-                    while(timeleft > 0)
-                    {
-                        int slv;
-                        slv=100000*timeleft;
-                        usleep(slv);
-                        timeleft=CalcWEPulseTimeLeft();
-                    }
-
-
-                    driver->stopPulse(WEDir);
-                    InWEPulse = false;
-
-                    // If we have another pulse, keep going
-                    if (!InNSPulse)
-                        SetTimer(250);
-
-                }
-            }
-        } else if (!InNSPulse)
-        {
-            WEtimerID = SetTimer(250);
-        }
-    }
-
-    if(InNSPulse)
-    {
-        timeleft=CalcNSPulseTimeLeft();
-
-        if(timeleft < 1.0)
-        {
-            if(timeleft > 0.25)
-            {
-                //  a quarter of a second or more
-                //  just set a tighter timer
-                NStimerID =  SetTimer(250);
-            } else
-            {
-                if(timeleft >0.07)
-                {
-                    //  use an even tighter timer
-                    NStimerID = SetTimer(50);
-                } else
-                {
-                    //  it's real close now, so spin on it
-                    while(timeleft > 0)
-                    {
-                        int slv;
-                        slv=100000*timeleft;
-                        usleep(slv);
-                        timeleft=CalcNSPulseTimeLeft();
-                    }
-
-                    driver->stopPulse(NSDir);
-                    InNSPulse = false;
-                }
-            }
-        } else
-        {
-            NStimerID = SetTimer(250);
-        }
-    }
-
-}
-
-IPState GPIOST4::GuideNorth(uint32_t ms)
-{
-
-    RemoveTimer(NStimerID);
-
-    driver->startPulse(GPIOST4_NORTH);
-
-    NSDir = GPIOST4_NORTH;
-
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting NORTH guide");
-
-    if (ms <= POLLMS)
-    {
-
-        usleep(ms*1000);
-
-        driver->stopPulse(GPIOST4_NORTH);
-        return IPS_OK;
-    }
-
-    NSPulseRequest=ms/1000.0;
-    gettimeofday(&NSPulseStart,NULL);
-    InNSPulse=true;
-
-    NStimerID = SetTimer(ms-50);
-
-    return IPS_BUSY;
-}
+ IPState GPIOST4::GuideNorth(uint32_t ms)
+ {
+     RemoveTimer(NSTimerID);
+  
+     driver->startPulse(GPIOST4_NORTH);
+  
+     NSDirection = GPIOST4_NORTH;
+  
+     LOG_DEBUG("Starting NORTH guide");
+  
+     NSPulseRequest = ms;
+  
+     NSGuideTS = std::chrono::system_clock::now();
+  
+     NSTimerID = IEAddTimer(ms, &GPIOST4::NSTimerHelper, this);
+  
+     return IPS_BUSY;
+ }
 
 IPState GPIOST4::GuideSouth(uint32_t ms)
-{
-    RemoveTimer(NStimerID);
+ {
+     RemoveTimer(NSTimerID);
 
-    driver->startPulse(GPIOST4_SOUTH);
+     driver->startPulse(GPIOST4_SOUTH);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting SOUTH guide");
+     NSDirection = GPIOST4_SOUTH;
 
-    NSDir = GPIOST4_SOUTH;
+     LOG_DEBUG("Starting SOUTH guide");
 
-    if (ms <= POLLMS)
-    {
+     NSPulseRequest = ms;
 
-        usleep(ms*1000);
+     NSGuideTS = std::chrono::system_clock::now();
 
-        driver->stopPulse(GPIOST4_SOUTH);
-        return IPS_OK;
-    }
+     NSTimerID = IEAddTimer(ms, &GPIOST4::NSTimerHelper, this);
 
-    NSPulseRequest=ms/1000.0;
-    gettimeofday(&NSPulseStart,NULL);
-    InNSPulse=true;
+     return IPS_BUSY;
+ }
 
-    NStimerID = SetTimer(ms-50);
+ IPState GPIOST4::GuideEast(uint32_t ms)
+ {
+     RemoveTimer(WETimerID);
 
-    return IPS_BUSY;
-}
+     driver->startPulse(GPIOST4_EAST);
 
-IPState GPIOST4::GuideEast(uint32_t ms)
-{
-    RemoveTimer(WEtimerID);
+     WEDirection = GPIOST4_EAST;
 
-    driver->startPulse(GPIOST4_EAST);
+     LOG_DEBUG("Starting EAST guide");
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting EAST guide");
+     WEPulseRequest = ms;
 
-    WEDir = GPIOST4_EAST;
+     WEGuideTS = std::chrono::system_clock::now();
 
-    if (ms <= POLLMS)
-    {
+     WETimerID = IEAddTimer(ms, &GPIOST4::WETimerHelper, this);
 
-        usleep(ms*1000);
+     return IPS_BUSY;
+ }
 
-        driver->stopPulse(GPIOST4_EAST);
-        return IPS_OK;
-    }
+ IPState GPIOST4::GuideWest(uint32_t ms)
+ {
+     RemoveTimer(WETimerID);
 
-    WEPulseRequest=ms/1000.0;
-    gettimeofday(&WEPulseStart,NULL);
-    InWEPulse=true;
+     driver->startPulse(GPIOST4_WEST);
 
-    WEtimerID = SetTimer(ms-50);
+     WEDirection = GPIOST4_WEST;
 
-    return IPS_BUSY;
-}
+     LOG_DEBUG("Starting WEST guide");
 
-IPState GPIOST4::GuideWest(uint32_t ms)
-{
+     WEPulseRequest = ms;
 
-    RemoveTimer(WEtimerID);
+     WEGuideTS = std::chrono::system_clock::now();
 
-    driver->startPulse(GPIOST4_WEST);
+     WETimerID = IEAddTimer(ms, &GPIOST4::WETimerHelper, this);
 
-    DEBUG(INDI::Logger::DBG_DEBUG, "Starting WEST guide");
+     return IPS_BUSY;
+ }
 
-    WEDir = GPIOST4_WEST;
+ void GPIOST4::NSTimerHelper(void *context)
+ {
+     static_cast<GPIOST4*>(context)->NSTimerCallback();
+ }
 
-    if (ms <= POLLMS)
-    {
+ void GPIOST4::WETimerHelper(void *context)
+ {
+     static_cast<GPIOST4*>(context)->WETimerCallback();
+ }
 
-        usleep(ms*1000);
+ void GPIOST4::NSTimerCallback()
+ {
+     driver->stopPulse(NSDirection);
+     GuideComplete(AXIS_DE);
+ }
 
-        driver->stopPulse(GPIOST4_WEST);
-        return IPS_OK;
-    }
-
-    WEPulseRequest=ms/1000.0;
-    gettimeofday(&WEPulseStart,NULL);
-    InWEPulse=true;
-
-
-    WEtimerID = SetTimer(ms-50);
-
-    return IPS_BUSY;
-
-}
+ void GPIOST4::WETimerCallback()
+ {
+     driver->stopPulse(WEDirection);
+     GuideComplete(AXIS_RA);
+ }

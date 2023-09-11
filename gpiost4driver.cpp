@@ -28,11 +28,34 @@
   Jason Westervelt - 20170422
 
 **********************************************************************/
+/*********************************************************************
+ * changes made for raspberry pi and wiringPi gpio driver
+ * tested with rPi Zero W, Arducam IMX327 and eq3-2
+ *
+gpio readall
+-Pi ZeroW-+---+------+---------+-----+-----+
+ Physical | V | Mode | Name    | wPi | BCM |
+----++----+---+------+---------+-----+-----+
+  1 || 2  |   |      | 5v      |     |     |
+  3 || 4  |   |      | 5v      |     |     |
+  5 || 6  |   |      | 0v      |     |     |
+  7 || 8  | 1 | ALT5 | TxD     | 15  | 14  |
+  9 || 10 | 1 | ALT5 | RxD     | 16  | 15  |
+ 11 || 12 | 0 | OUT  | GPIO. 1 | 1   | 18  |   	<-- RA_plus // defined in gpiost4driver.h
+ 13 || 14 |   |      | 0v      |     |     |
+ 15 || 16 | 0 | OUT  | GPIO. 4 | 4   | 23  |	<-- DEC_plus
+ 17 || 18 | 0 | OUT  | GPIO. 5 | 5   | 24  | 	<-- DEC_minus
+ 19 || 20 |   |      | 0v      |     |     |	<-- RA_minus
+ 21 || 22 | 0 | OUT  | GPIO. 6 | 6   | 25  |
+ 23 || 24 | 1 | OUT  | CE0     | 10  | 8   |
+ 25 || 26 | 1 | OUT  | CE1     | 11  | 7   |
+
+  e2rd - 20230911
+**********************************************************************/
 
 #include "gpiost4driver.h"
 #include <indidevapi.h>
 #include <wiringPi.h>
-
 
 GPIOST4Driver::GPIOST4Driver()
 {
@@ -45,8 +68,6 @@ GPIOST4Driver::~GPIOST4Driver()
     //dtor
     // usb_close(usb_handle);
 }
-
-
 
 bool GPIOST4Driver::Connect()
 {
@@ -126,37 +147,3 @@ bool GPIOST4Driver::stopPulse(int direction)
     return 1;
 }
 
-
-bool GPIOST4Driver::write_blocking(std::string s){
-  this->write(s);
-  std::string res = this->wait_read();
-  return res == "INITIALIZED#" || res == "OK#";
-}
-
-void GPIOST4Driver::write(std::string s){
-  const char *cmd = s.c_str();
-  int n_written = 0,
-  spot = 0;
-
-  do {
-    n_written = ::write( fd, &cmd[spot], 1 );
-    spot += n_written;
-  } while (spot != s.length() && n_written > 0);
-}
-
-std::string GPIOST4Driver::wait_read(){
-  int n = 0;
-  int spot = 0;
-  char buf = '\0';
-
-  /* Whole response*/
-  char response[1024];
-  memset(response, '\0', sizeof response);
-
-  do {
-    n = read( fd, &buf, 1 );
-    sprintf( &response[spot], "%c", buf );
-    spot += n;
-  } while( buf != '#' && n > 0);
-  return std::string(response);
-}

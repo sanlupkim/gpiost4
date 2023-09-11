@@ -31,13 +31,8 @@
 
 #include "gpiost4driver.h"
 #include <indidevapi.h>
-#include "pinout.h"
-#include "gpio.h"
+#include <wiringPi.h>
 
-using namespace std;
-using namespace Pine64;
-
-GPIO* st4 = new GPIO();
 
 GPIOST4Driver::GPIOST4Driver()
 {
@@ -55,15 +50,15 @@ GPIOST4Driver::~GPIOST4Driver()
 
 bool GPIOST4Driver::Connect()
 {
-  if (st4->setup()) {
+  if (wiringPiSetup () ) {
     std::cout << "Failed to configure GPIO\n" << std::endl;
     return 0;
   }
   std::cout << " Setting GPIO pin directions\n" << std::endl;
-  st4->pinMode(RA_plus, OUTPUT);
-  st4->pinMode(RA_minus, OUTPUT);
-  st4->pinMode(DEC_plus, OUTPUT);
-  st4->pinMode(DEC_minus, OUTPUT);
+  pinMode(RA_plus, OUTPUT);
+  pinMode(RA_minus, OUTPUT);
+  pinMode(DEC_plus, OUTPUT);
+  pinMode(DEC_minus, OUTPUT);
   std::cout << " GPIO ready\n" << std::endl;
   return 1;
 }
@@ -73,7 +68,7 @@ bool GPIOST4Driver::Disconnect()
   //write_blocking("DISCONNECT#");
 
   //  close(this->fd);
-  //  return true;
+    return true;
 }
 
 bool GPIOST4Driver::startPulse(int direction)
@@ -82,22 +77,22 @@ bool GPIOST4Driver::startPulse(int direction)
     {
       case GPIOST4_NORTH:
         if (debug) IDLog("Start North\n");
-          st4->digitalWrite(RA_plus, HIGH);
+          digitalWrite(DEC_plus, HIGH);
         break;
 
         case GPIOST4_WEST:
         if (debug) IDLog("Start West\n");
-          st4->digitalWrite(DEC_plus, HIGH);
+          digitalWrite(RA_minus, HIGH);
         break;
 
         case GPIOST4_SOUTH:
         if (debug) IDLog("Start South\n");
-          st4->digitalWrite(RA_minus, HIGH);
+          digitalWrite(DEC_minus, HIGH);
         break;
 
         case GPIOST4_EAST:
         if (debug) IDLog("Start East\n");
-          st4->digitalWrite(DEC_minus, HIGH);
+          digitalWrite(RA_plus, HIGH);
         break;
     }
     return 1;
@@ -110,22 +105,22 @@ bool GPIOST4Driver::stopPulse(int direction)
     {
         case GPIOST4_NORTH:
         if (debug) IDLog("Stop North\n");
-          st4->digitalWrite(RA_plus, LOW);
+          digitalWrite(DEC_plus, LOW);
         break;
 
         case GPIOST4_WEST:
         if (debug) IDLog("Stop West\n");
-          st4->digitalWrite(DEC_plus, LOW);
+          digitalWrite(RA_minus, LOW);
         break;
 
         case GPIOST4_SOUTH:
         if (debug) IDLog("Stop South\n");
-          st4->digitalWrite(RA_minus, LOW);
+          digitalWrite(DEC_minus, LOW);
         break;
 
         case GPIOST4_EAST:
         if (debug) IDLog("Stop East\n");
-          st4->digitalWrite(DEC_minus, LOW);
+          digitalWrite(RA_plus, LOW);
         break;
     }
     return 1;

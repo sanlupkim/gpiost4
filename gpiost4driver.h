@@ -45,12 +45,16 @@
 
 #include <iostream>
 
-#include "pinout.h"
+/* #define RA_plus 12
+#define DEC_plus 16
+#define DEC_minus 18
+#define RA_minus 22 */
 
-#define RA_plus PI_GPIO_6
-#define DEC_plus PI_GPIO_13
-#define DEC_minus PI_GPIO_19
-#define RA_minus PI_GPIO_26
+//wPi style
+#define RA_plus 1
+#define DEC_plus 4
+#define DEC_minus 5
+#define RA_minus 6
 
 enum
 {

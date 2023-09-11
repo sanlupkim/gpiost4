@@ -38,6 +38,16 @@
 // We declare an auto pointer to gpGuide.
 std::unique_ptr<GPIOST4> gpGuide(new GPIOST4());
 
+GPIOST4::GPIOST4() : INDI::GuiderInterface()
+{
+    setVersion(1, 0);
+    driver = new GPIOST4Driver();
+    WEDir = NSDir = 0;
+    InWEPulse = InNSPulse = false;
+    WEPulseRequest = NSPulseRequest =0;
+    WEtimerID = NStimerID = 0;
+}
+
 void ISGetProperties(const char *dev)
 {
         gpGuide->ISGetProperties(dev);
@@ -74,26 +84,15 @@ void ISSnoopDevice (XMLEle *root)
     INDI_UNUSED(root);
 }
 
-GPIOST4::GPIOST4()
-{
-    driver = new GPIOST4Driver();
-    WEDir = NSDir = 0;
-    InWEPulse = InNSPulse = false;
-    WEPulseRequest = NSPulseRequest =0;
-    WEtimerID = NStimerID = 0;
-}
-
 GPIOST4::~GPIOST4()
 {
-
     delete (driver);
-
 }
 
 
-const char * GPIOST4::getDefaultName()
+const char *GPIOST4::getDefaultName()
 {
-    return (char *)"GPIOST4";
+    return static_cast<const char *>("GPIO ST4");
 }
 
 bool GPIOST4::Connect()
@@ -103,9 +102,9 @@ bool GPIOST4::Connect()
     bool rc = driver->Connect();
 
     if (rc)
-        IDMessage(getDeviceName(), "GPIOST4 is online.");
+        IDMessage(getDeviceName(), "GPIO ST4 is online.");
     else
-        IDMessage(getDeviceName(), "Error: cannot find GPIOST4 device.");
+        IDMessage(getDeviceName(), "Error: cannot find GPIO ST4 device.");
 
     return rc;
 
@@ -113,7 +112,7 @@ bool GPIOST4::Connect()
 
 bool GPIOST4::Disconnect()
 {
-    IDMessage(getDeviceName(), "GPIOST4 is offline.");
+    IDMessage(getDeviceName(), "GPIO ST4 is offline.");
 
     return driver->Disconnect();
 }
@@ -122,7 +121,11 @@ bool GPIOST4::initProperties()
 {
     initGuiderProperties(getDeviceName(), MAIN_CONTROL_TAB);
 
+    setDriverInterface(AUX_INTERFACE | GUIDER_INTERFACE);
+
     addDebugControl();
+
+    //setDefaultPollingPeriod(250);
 
     return INDI::DefaultDevice::initProperties();
 }
@@ -134,8 +137,8 @@ bool GPIOST4::updateProperties()
 
     if (isConnected())
     {
-        defineNumber(&GuideNSNP);
-        defineNumber(&GuideWENP);
+        defineProperty(&GuideNSNP);
+        defineProperty(&GuideWENP);
     }
     else
     {
@@ -305,11 +308,10 @@ void GPIOST4::TimerHit()
 
 }
 
-IPState GPIOST4::GuideNorth(float ms)
+IPState GPIOST4::GuideNorth(uint32_t ms)
 {
 
     RemoveTimer(NStimerID);
-
 
     driver->startPulse(GPIOST4_NORTH);
 
@@ -330,13 +332,12 @@ IPState GPIOST4::GuideNorth(float ms)
     gettimeofday(&NSPulseStart,NULL);
     InNSPulse=true;
 
-
     NStimerID = SetTimer(ms-50);
 
     return IPS_BUSY;
 }
 
-IPState GPIOST4::GuideSouth(float ms)
+IPState GPIOST4::GuideSouth(uint32_t ms)
 {
     RemoveTimer(NStimerID);
 
@@ -359,13 +360,12 @@ IPState GPIOST4::GuideSouth(float ms)
     gettimeofday(&NSPulseStart,NULL);
     InNSPulse=true;
 
-
     NStimerID = SetTimer(ms-50);
 
     return IPS_BUSY;
 }
 
-IPState GPIOST4::GuideEast(float ms)
+IPState GPIOST4::GuideEast(uint32_t ms)
 {
     RemoveTimer(WEtimerID);
 
@@ -393,7 +393,7 @@ IPState GPIOST4::GuideEast(float ms)
     return IPS_BUSY;
 }
 
-IPState GPIOST4::GuideWest(float ms)
+IPState GPIOST4::GuideWest(uint32_t ms)
 {
 
     RemoveTimer(WEtimerID);

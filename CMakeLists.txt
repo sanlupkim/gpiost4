@@ -10,8 +10,10 @@ else()
         message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
 
-
+# Include headers
 include_directories("/usr/include/libindi/")
-add_executable(indi_gpiost4 gpio.cpp gpiost4.cpp gpiost4driver.cpp)
 
-target_link_libraries(indi_gpiost4 indidriver)
+add_executable(indi_gpiost4 gpiost4.cpp gpiost4driver.cpp)
+#add_definitions(-std=c++0x -L/usr/lib/libwringPi.so -lwiringPi -lpthread)
+
+target_link_libraries(indi_gpiost4 indidriver -lwiringPi -lpthread)

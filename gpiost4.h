@@ -26,7 +26,6 @@
 #include <defaultdevice.h>
 #include <indiguiderinterface.h>
 
-
 /* Standard headers */
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,7 +39,7 @@
 
 class GPIOST4Driver;
 
-class GPIOST4 : public INDI::GuiderInterface, public INDI::DefaultDevice
+class GPIOST4 : public INDI::DefaultDevice, public INDI::GuiderInterface
 {
     public:
     GPIOST4();
@@ -60,14 +59,14 @@ class GPIOST4 : public INDI::GuiderInterface, public INDI::DefaultDevice
     bool Connect();
     bool Disconnect();
     const char *getDefaultName();
-    void debugTriggered(bool enable);
+    void debugTriggered(bool enable) override;
 
     void TimerHit();
 
-    virtual IPState GuideNorth(float ms);
-    virtual IPState GuideSouth(float ms);
-    virtual IPState GuideEast(float ms);
-    virtual IPState GuideWest(float ms);
+    virtual IPState GuideNorth(uint32_t ms) override;
+    virtual IPState GuideSouth(uint32_t ms) override;
+    virtual IPState GuideEast(uint32_t ms) override;
+    virtual IPState GuideWest(uint32_t ms) override;
 
     private:
 

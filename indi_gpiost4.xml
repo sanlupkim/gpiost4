@@ -1,7 +1,7 @@
 <driversList>
   <devGroup group="Auxiliary">
-    <device label="INDI GPIO ST4" manufacturer="DIY">
-      <driver name="INDI GPIO ST4">indi_gpiost4</driver>
+    <device label="GPIO ST4" manufacturer="DIY">
+      <driver name="GPIO ST4">indi_gpiost4</driver>
       <version>1.0</version>
     </device>
   </devGroup>

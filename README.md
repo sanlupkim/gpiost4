@@ -15,15 +15,14 @@ another device/battery-muncher.
 This is based on the GPUSB driver and as such under the GPL2. 
 
 ## Features/Limitations
-  * No way^H^H^Hneed to dynamically assign a tty
   * No way to dynamically assign GPIO pins
   * No Goto, just North, West, South, East
   * Only works on Raspberry Pi
 
 ## To Do
   * Add support for dynamic GPIO assignment
-  * Find out how to allow clients such as KStars to dynamically load this driver as 
-    it doesn't show up in the list currently
+  * ~~Find out how to allow clients such as KStars to dynamically load this driver as
+    it doesn't show up in the list currently~~
 
 ## Configuring
   * GPIO pin assignments made in gpiost4driver.h
@@ -31,10 +30,17 @@ This is based on the GPUSB driver and as such under the GPL2.
 
 ## Building
 
-    install wiringPi libs
+    install wiringPi libs (*sudo dpkg -i wiringpi-latest.deb*)
     cmake .
     make
+
+## Installing
+
+    Just copy binary indi_gpiost4 to /usr/loca/bin/
+    and copy indi_gpiost4.xml to /usr/share/indi/
+    indi client (astroberry indiwebmanager, phd2, I think kstars also) show new Auxiliary driver: GPIO ST4
 
 ## Running
 
     indiserver ./indi_gpiost4
+    OR run from client
